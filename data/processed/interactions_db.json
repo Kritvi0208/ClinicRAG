@@ -1,0 +1,26 @@
+{
+    "aspirin+warfarin": {
+        "drugs": ["Aspirin", "Warfarin"],
+        "severity": "Major",
+        "mechanism": "Both medications thin the blood. Combining them significantly increases the risk of serious bleeding (gastrointestinal or internal).",
+        "recommendation": "Avoid simultaneous use unless specifically prescribed and monitored by a doctor. Regular blood clotting tests (INR) will be required."
+    },
+    "ibuprofen+lisinopril": {
+        "drugs": ["Ibuprofen", "Lisinopril"],
+        "severity": "Moderate",
+        "mechanism": "NSAIDs like Ibuprofen can reduce the blood-pressure-lowering effects of ACE inhibitors like Lisinopril. It may also increase the risk of kidney impairment, especially in elderly or dehydrated patients.",
+        "recommendation": "Monitor blood pressure regularly. Ensure adequate hydration. Consult a physician for alternative pain management if used long-term."
+    },
+    "metformin+alcohol": {
+        "drugs": ["Metformin", "Alcohol"],
+        "severity": "Major",
+        "mechanism": "Alcohol can increase the risk of Metformin-induced lactic acidosis, a rare but life-threatening condition characterized by deep/rapid breathing, muscle pain, and extreme fatigue.",
+        "recommendation": "Avoid excessive or chronic alcohol consumption while taking Metformin."
+    },
+    "aspirin+ibuprofen": {
+        "drugs": ["Aspirin", "Ibuprofen"],
+        "severity": "Moderate",
+        "mechanism": "Ibuprofen can interfere with the antiplatelet effect of low-dose aspirin used for cardioprotection, making aspirin less effective. It also increases gastrointestinal bleeding risks.",
+        "recommendation": "If taking both, take aspirin at least 30 minutes before or 8 hours after taking ibuprofen, or consult a doctor for options."
+    }
+}

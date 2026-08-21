@@ -1,0 +1,31 @@
+site_name: ClinicRAG Documentation
+site_description: Clinical Decision Support & Medical Intelligence System with LangChain, ChromaDB, and Google Gemini.
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - Setup & Installation: setup.md
+  - RAG Pipeline: rag.md
+  - Prompt Engineering: prompts.md
+  - Clinical Tools: tools.md
+  - Deployment: deployment.md

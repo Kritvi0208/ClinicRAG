@@ -1,0 +1,47 @@
+{
+    "paracetamol": {
+        "name": "Paracetamol (Acetaminophen)",
+        "generic": "Acetaminophen",
+        "uses": "Temporary relief of mild to moderate pain (headaches, muscle aches, toothaches) and reducing fever.",
+        "side_effects": "Rare when taken at recommended doses. High doses can cause serious liver damage. Allergic reactions (rash, swelling) are very rare.",
+        "warnings": "Do not exceed 4000 mg in 24 hours. Avoid alcohol. Check other cold/flu meds to prevent double-dosing.",
+        "storage": "Store at room temperature away from direct heat and moisture.",
+        "interactions": "Alcohol increases risk of liver toxicity. Warfarin (long-term use) may have increased bleeding risks."
+    },
+    "aspirin": {
+        "name": "Aspirin (Acetylsalicylic Acid)",
+        "generic": "Acetylsalicylic Acid",
+        "uses": "Pain relief, reducing inflammation, reducing fever, and preventing blood clots (low dose cardiovascular therapy).",
+        "side_effects": "Stomach upset, heartburn, easy bruising or bleeding, increased risk of stomach ulcers.",
+        "warnings": "Do not give to children or teenagers due to Reye's syndrome risk. Do not use if you have bleeding disorders or active stomach ulcers.",
+        "storage": "Store in a dry place at room temperature. Keep tightly closed.",
+        "interactions": "Interacts with blood thinners (Warfarin), NSAIDs (Ibuprofen), and corticosteroids."
+    },
+    "ibuprofen": {
+        "name": "Ibuprofen",
+        "generic": "Ibuprofen",
+        "uses": "Relief of pain, inflammation, and stiffness caused by arthritis, menstrual cramps, headache, toothache, and back pain.",
+        "side_effects": "Nausea, vomiting, diarrhea, bloating, constipation, dizziness, high blood pressure.",
+        "warnings": "Take with food or milk to prevent stomach upset. Can increase risk of heart attack or stroke if used long-term or at high doses.",
+        "storage": "Store in a dry place at room temperature. Protect from light.",
+        "interactions": "Interacts with aspirin, blood pressure medications (ACE inhibitors like Lisinopril), and blood thinners."
+    },
+    "metformin": {
+        "name": "Metformin",
+        "generic": "Metformin Hydrochloride",
+        "uses": "Management of Type 2 diabetes to improve blood sugar control.",
+        "side_effects": "Nausea, upset stomach, diarrhea, metallic taste in mouth. Rare but serious risk of lactic acidosis.",
+        "warnings": "Do not use in patients with severe kidney disease. Avoid heavy alcohol intake while taking Metformin.",
+        "storage": "Store at room temperature away from light and moisture.",
+        "interactions": "Cimetidine, contrast dyes used for imaging (may require temporary suspension)."
+    },
+    "amoxicillin": {
+        "name": "Amoxicillin",
+        "generic": "Amoxicillin",
+        "uses": "Treatment of bacterial infections such as ear infections, strep throat, pneumonia, and urinary tract infections.",
+        "side_effects": "Diarrhea, nausea, vomiting, skin rash, yeast infection.",
+        "warnings": "Finish the entire prescribed course even if symptoms disappear. Do not use if you are allergic to penicillin.",
+        "storage": "Capsules: store at room temperature. Liquid: store in refrigerator (do not freeze) and discard after 14 days.",
+        "interactions": "May reduce the effectiveness of oral contraceptives. Allopurinol may increase risk of rash."
+    }
+}

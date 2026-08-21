@@ -1,0 +1,41 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Chroma vector database & raw multi-gigabyte XML dumps
+chroma_db/
+data/extracted/
+data/raw/
+
+# Logs & temporary files
+*.log
+*.zip
+data_report.txt
+sample_xml.txt
+inspect_data.py
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Documentation builds
+docs/_build/
+site/
+
+# Testing & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
