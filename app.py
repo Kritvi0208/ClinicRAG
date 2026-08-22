@@ -49,7 +49,27 @@ from src.router import IntentRouter
 if "agent" not in st.session_state:
     st.session_state["agent"] = None
 if "vector_store" not in st.session_state:
-    st.session_state["vector_store"] = MedicalVectorStore()
+    vs = MedicalVectorStore()
+    api_key = config.GOOGLE_API_KEY
+    if not api_key:
+        try:
+            if hasattr(st, "secrets") and "GOOGLE_API_KEY" in st.secrets:
+                api_key = str(st.secrets["GOOGLE_API_KEY"]).strip()
+        except Exception:
+            pass
+    if vs.get_document_count() == 0 and api_key:
+        try:
+            from src.loaders import MedicalDocumentLoader
+            from src.splitter import MedicalTextSplitter
+            from src.parser import MedicalDocumentParser
+            raw_docs = MedicalDocumentLoader(config.KNOWLEDGE_BASE_DIR).load()
+            if raw_docs:
+                chunks = MedicalTextSplitter().split_documents(raw_docs)
+                processed = MedicalDocumentParser().parse_sections(chunks)
+                vs.add_documents(processed)
+        except Exception as e:
+            pass
+    st.session_state["vector_store"] = vs
 if "last_retrieved_docs" not in st.session_state:
     st.session_state["last_retrieved_docs"] = []
 if "session_id" not in st.session_state:
@@ -161,6 +181,17 @@ with st.sidebar:
             "<div class='status-badge status-inactive'>Indexed: Empty (0 Chunks)</div>", 
             unsafe_allow_html=True
         )
+        if st.button("Sync & Index Knowledge Base", key="seed_kb_btn", use_container_width=True):
+            with st.spinner("Indexing clinical guidelines into ChromaDB..."):
+                from src.loaders import MedicalDocumentLoader
+                from src.splitter import MedicalTextSplitter
+                from src.parser import MedicalDocumentParser
+                raw_docs = MedicalDocumentLoader(config.KNOWLEDGE_BASE_DIR).load()
+                if raw_docs:
+                    chunks = MedicalTextSplitter().split_documents(raw_docs)
+                    processed = MedicalDocumentParser().parse_sections(chunks)
+                    store.add_documents(processed)
+                    st.rerun()
         
     st.markdown("<div class='custom-hr'></div>", unsafe_allow_html=True)
 

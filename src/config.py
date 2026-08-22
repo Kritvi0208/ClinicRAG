@@ -24,6 +24,14 @@ class AppConfig:
     
     # API configuration
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+    if not GOOGLE_API_KEY:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GOOGLE_API_KEY" in st.secrets:
+                GOOGLE_API_KEY = str(st.secrets["GOOGLE_API_KEY"]).strip()
+                os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+        except Exception:
+            pass
     
     # Model configuration
     LLM_MODEL_NAME = "gemini-3.7-flash"  # Default primary Gemini model
