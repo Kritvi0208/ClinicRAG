@@ -138,10 +138,15 @@ class IntentRouter:
                     ("human", user_prompt)
                 ]
                 
-                response = llm.invoke(messages)
-                response_text = response.content.strip() if isinstance(response.content, str) else str(response.content)
+                if isinstance(response.content, list):
+                    response_text = "".join([part.get("text", "") if isinstance(part, dict) else (part if isinstance(part, str) else getattr(part, "text", "")) for part in response.content]).strip()
+                else:
+                    response_text = str(response.content).strip()
                 
-                if response_text.startswith("```"):
+                json_match = re.search(r"\{.*?\}", response_text, re.DOTALL)
+                if json_match:
+                    response_text = json_match.group(0)
+                elif response_text.startswith("```"):
                     lines = response_text.splitlines()
                     if len(lines) > 2:
                         response_text = "\n".join(lines[1:-1])

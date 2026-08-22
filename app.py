@@ -131,6 +131,22 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
+    # Expandable "How to Use" Guide (Clean, short, clear)
+    with st.expander("How to Use ClinicRAG", expanded=False):
+        st.markdown(
+            """
+            <div style="font-size: 0.84rem; color: #4E3F8A; line-height: 1.55;">
+                <p><b>1. Symptoms & Guidelines:</b> Ask about symptoms, illnesses, or home care (e.g., <i>"What to do for viral fever?"</i>).</p>
+                <p><b>2. Medications:</b> Check usage, warnings, and side effects (e.g., <i>"Paracetamol dosage and warnings"</i>).</p>
+                <p><b>3. Drug Interactions:</b> Check if two medicines interact (e.g., <i>"Aspirin + Warfarin"</i>).</p>
+                <p><b>4. Health Calculators:</b> Ask for BMI, BMR, TDEE, or water intake (e.g., <i>"Calculate my BMI for 65 kg and 5'4"</i>).</p>
+                <p><b>5. Emergency First Aid:</b> Instant step-by-step guidance for CPR, burns, choking, or bleeding.</p>
+                <p><b>6. Follow-up Questions:</b> Click any horizontal suggestion chip to ask next questions instantly.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     # 3. Knowledge Base Status
     store = st.session_state["vector_store"]
     doc_count = store.get_document_count()
@@ -243,10 +259,10 @@ for idx, msg in enumerate(messages):
     content = msg["content"]
     
     if role == "user":
-        with st.chat_message("user"):
+        with st.chat_message("user", avatar="👤"):
             st.write(content)
     else:
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="🩺"):
             clean_text = content
             suggested_questions = []
             follow_up_pattern = r"(Suggested Follow-ups:|Suggested Follow-up Questions:|Follow-up Questions:)\s*\n1\.\s*(.*?)\n2\.\s*(.*?)\n3\.\s*(.*?)(?:\n|$)"
@@ -289,30 +305,31 @@ elif user_input:
     prompt_to_run = user_input
 
 if prompt_to_run:
-    # 1. Add User Message to Memory
+    # 1. Add User Message to Memory and render immediately on screen
     memory.add_message("user", prompt_to_run)
+    with st.chat_message("user", avatar="👤"):
+        st.write(prompt_to_run)
     
     # Reset tool metrics
     st.session_state["last_retrieved_docs"] = []
     st.session_state["executed_tools"] = []
     st.session_state["active_medicine_badge"] = ""
     
-    # 2. Routing & Safety Check
+    # 2. Routing & Safety Check with sequential step transitions
     profile_context = memory.get_patient_profile_string()
     history_str = memory.get_formatted_history_string()
     
-    with st.spinner("Analyzing query and clinical sources..."):
+    with st.status("Step 1/3: Checking safety flags & classifying query intent...", expanded=True) as status_box:
         start_time = time.time()
         output_text = ""
         is_emergency = False
         
         try:
-            # Classify Intents and Emergency Bypass
             routing_res = router.classify(prompt_to_run, history_str)
             is_emergency = routing_res["emergency_bypass"]
             
             if is_emergency:
-                # 3. Emergency Red-Flag Bypass Action
+                status_box.update(label="Emergency detected: Retrieving acute care protocol...", state="running")
                 matched = routing_res.get("matched_flag", "Emergency")
                 from src.tools import emergency_first_aid_guide
                 first_aid_str = emergency_first_aid_guide.invoke(matched)
@@ -334,8 +351,8 @@ if prompt_to_run:
                     f"**Sources**:\n"
                     f"- WHO Community Emergency Care Guidelines\n\n"
                 )
+                status_box.update(label="Emergency care protocol ready", state="complete", expanded=False)
             elif "Greeting" in routing_res.get("intents", []):
-                # Fast greeting response (0 ms latency)
                 output_text = (
                     "Hello. I am ClinicRAG, your clinical decision support assistant. "
                     "How can I assist you today with your symptoms, medications, or medical guidelines?\n\n"
@@ -344,11 +361,17 @@ if prompt_to_run:
                     "2. Check drug interactions\n"
                     "3. Calculate Body Mass Index"
                 )
+                status_box.update(label="Greeting response ready", state="complete", expanded=False)
             else:
-                # Standard Agent Execution with LangChain history
+                # Step 1 finished -> replace/transition to Step 2
+                status_box.update(label="Step 2/3: Searching knowledge base (WHO / MedlinePlus / FDA)...", state="running")
                 langchain_hist = memory.get_langchain_messages()
                 response = agent.run(prompt_to_run, langchain_hist, profile_context)
+                
+                # Step 2 finished -> replace/transition to Step 3
+                status_box.update(label="Step 3/3: Synthesizing verified evidence & formatting response...", state="running")
                 output_text = response.get("output", "I could not resolve your query.")
+                status_box.update(label="Clinical response ready", state="complete", expanded=False)
                 
             duration = time.time() - start_time
             logger.info(f"Query executed in {duration:.4f}s. Intents classified: {routing_res.get('intents')}")
@@ -356,6 +379,7 @@ if prompt_to_run:
         except Exception as e:
             output_text = f"An unexpected error occurred while routing your query: {exception_formatter(e)}"
             logger.error(f"UI chat error: {e}")
+            status_box.update(label="Error in clinical pipeline", state="error", expanded=False)
             
     # 4. Save Assistant Output to Memory
     memory.add_message("assistant", output_text)
@@ -376,6 +400,5 @@ if prompt_to_run:
                 "score": conf
             })
         st.session_state["sources_by_message_index"][assistant_msg_idx] = evidence_items
-
-    # 6. Clean rerun so everything renders once in the canonical message loop
+        
     st.rerun()
