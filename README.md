@@ -15,15 +15,14 @@
 
 **ClinicRAG** is an advanced clinical intelligence and healthcare decision support platform. It integrates evidence-based medical knowledge bases (World Health Organization guidelines, MedlinePlus / NIH medical encyclopedia, and official US FDA DailyMed drug labels) with a resilient, multi-tiered retrieval-augmented generation (RAG) pipeline.
 
-### Core Capabilities:
-- **Hybrid Medical RAG**: Semantic vector retrieval using Maximal Marginal Relevance (MMR) and L2 distance confidence calibration over peer-reviewed clinical guidelines.
-- **FDA DailyMed Pharmaceutical Intelligence**: Local parsing of HL7 v3 Structured Product Labeling (SPL) XML files covering indications, black-box warnings, contraindications, and adverse reactions across 3,330+ indexed medications.
-- **Drug-Drug Interaction Analysis**: Severity-rated drug interaction checker detailing pharmacokinetic mechanisms and actionable clinical recommendations.
-- **Emergency Red-Flag Triage**: Deterministic safety interception for critical conditions (severe bleeding, acute chest pain, stroke FAST signs, anaphylaxis) with instantaneous emergency first-aid protocols.
-- **Multi-Model Fault Tolerance**: Automated cascade across Gemini 3.7 Flash, 3.6 Flash, 3.5 Flash, and local deterministic execution to guarantee 100% service availability with zero API quota disruptions.
-- **16 Clinical & Metric Tools**: Health calculators (BMI, BMR, TDEE, Water Intake), unit converters, pregnancy milestones, and clinical triage.
-- **Patient Profile Memory**: State-managed patient context (age, gender, allergies, chronic diseases, active medications) dynamically injected into clinical reasoning.
-
+### Core Capabilities
+- **Hybrid Medical RAG** — MMR-based semantic retrieval with confidence calibration.
+- **Drug Intelligence** — FDA DailyMed SPL parsing covering **3,330+ medications**, warnings, contraindications, and adverse reactions.
+- **Drug Interaction Analysis** — Severity-based interactions with actionable recommendations.
+- **Emergency Triage** — Deterministic detection of critical red-flag conditions with immediate guidance.
+- **Multi-Model Fault Tolerance** — Automated model fallback for reliable service availability.
+- **16 Clinical Tools** — BMI, BMR, TDEE, water intake, pregnancy milestones, unit conversion, and triage.
+- **Patient Memory** — Context-aware reasoning using allergies, conditions, medications, and patient profiles.
 ---
 
 ## 📐 System Architecture
@@ -231,6 +230,4 @@ python scripts/verify_database.py
 
 ---
 
-## 📄 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
