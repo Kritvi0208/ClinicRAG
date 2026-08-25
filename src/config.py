@@ -33,11 +33,10 @@ class AppConfig:
         except Exception:
             pass
     
-    # Model configuration
-    LLM_MODEL_NAME = "gemini-3.7-flash"  # Default primary Gemini model
+    # Model configuration (High-speed, high-accuracy flash models)
+    LLM_MODEL_NAME = "gemini-3.5-flash"  # Primary fastest accurate model
     FALLBACK_MODELS = [
         "gemini-3.6-flash",
-        "gemini-3.5-flash",
         "gemini-3.5-flash-lite",
         "gemini-flash-latest"
     ]

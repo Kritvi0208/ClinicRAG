@@ -346,71 +346,75 @@ if prompt_to_run:
     st.session_state["executed_tools"] = []
     st.session_state["active_medicine_badge"] = ""
     
-    # 2. Routing & Safety Check with sequential step transitions
+    # 2. Routing & Execution with sleek AI pulse animation loader
     profile_context = memory.get_patient_profile_string()
     history_str = memory.get_formatted_history_string()
     
-    with st.status("Step 1/3: Checking safety flags & classifying query intent...", expanded=True) as status_box:
-        start_time = time.time()
-        output_text = ""
-        is_emergency = False
+    loader_placeholder = st.empty()
+    loader_placeholder.markdown(
+        """
+        <div class="clinic-ai-loader">
+            <div class="clinic-pulse-dot"></div>
+            <div class="clinic-pulse-dot"></div>
+            <div class="clinic-pulse-dot"></div>
+            <span class="clinic-loader-text">ClinicRAG is thinking...</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    start_time = time.time()
+    output_text = ""
+    is_emergency = False
+    
+    try:
+        routing_res = router.classify(prompt_to_run, history_str)
+        is_emergency = routing_res["emergency_bypass"]
         
-        try:
-            routing_res = router.classify(prompt_to_run, history_str)
-            is_emergency = routing_res["emergency_bypass"]
+        if is_emergency:
+            matched = routing_res.get("matched_flag", "Emergency")
+            from src.tools import emergency_first_aid_guide
+            first_aid_str = emergency_first_aid_guide.invoke(matched)
             
-            if is_emergency:
-                status_box.update(label="Emergency detected: Retrieving acute care protocol...", state="running")
-                matched = routing_res.get("matched_flag", "Emergency")
-                from src.tools import emergency_first_aid_guide
-                first_aid_str = emergency_first_aid_guide.invoke(matched)
-                
-                output_text = (
-                    f"**CRITICAL EMERGENCY ALERT: Immediate medical attention required.**\n\n"
-                    f"**Danger signs detected: '{matched.upper()}'. Normal triage is suspended.**\n\n"
-                    f"{first_aid_str}\n\n"
-                    f"**Immediate Steps**:\n"
-                    f"1. **Call Emergency Hotline (911 / 112 / 102)** immediately.\n"
-                    f"2. Stay calm and sit down or lie down.\n"
-                    f"3. Unlock your door so first responders can enter.\n\n"
-                    f"**Do**:\n"
-                    f"- Loosen tight clothing.\n"
-                    f"- Rest quietly and monitor breathing.\n\n"
-                    f"**Don't**:\n"
-                    f"- Do NOT attempt to drive yourself to the emergency room.\n"
-                    f"- Do NOT ingest food, fluids, or unprescribed medications.\n\n"
-                    f"**Sources**:\n"
-                    f"- WHO Community Emergency Care Guidelines\n\n"
-                )
-                status_box.update(label="Emergency care protocol ready", state="complete", expanded=False)
-            elif "Greeting" in routing_res.get("intents", []):
-                output_text = (
-                    "Hello. I am ClinicRAG, your clinical decision support assistant. "
-                    "How can I assist you today with your symptoms, medications, or medical guidelines?\n\n"
-                    "Suggested Follow-ups:\n"
-                    "1. Common cold vs flu symptoms\n"
-                    "2. Check drug interactions\n"
-                    "3. Calculate Body Mass Index"
-                )
-                status_box.update(label="Greeting response ready", state="complete", expanded=False)
-            else:
-                # Step 1 finished -> replace/transition to Step 2
-                status_box.update(label="Step 2/3: Searching knowledge base (WHO / MedlinePlus / FDA)...", state="running")
-                langchain_hist = memory.get_langchain_messages()
-                response = agent.run(prompt_to_run, langchain_hist, profile_context)
-                
-                # Step 2 finished -> replace/transition to Step 3
-                status_box.update(label="Step 3/3: Synthesizing verified evidence & formatting response...", state="running")
-                output_text = response.get("output", "I could not resolve your query.")
-                status_box.update(label="Clinical response ready", state="complete", expanded=False)
-                
-            duration = time.time() - start_time
-            logger.info(f"Query executed in {duration:.4f}s. Intents classified: {routing_res.get('intents')}")
+            output_text = (
+                f"**CRITICAL EMERGENCY ALERT: Immediate medical attention required.**\n\n"
+                f"**Danger signs detected: '{matched.upper()}'. Normal triage is suspended.**\n\n"
+                f"{first_aid_str}\n\n"
+                f"**Immediate Steps**:\n"
+                f"1. **Call Emergency Hotline (911 / 112 / 102)** immediately.\n"
+                f"2. Stay calm and sit down or lie down.\n"
+                f"3. Unlock your door so first responders can enter.\n\n"
+                f"**Do**:\n"
+                f"- Loosen tight clothing.\n"
+                f"- Rest quietly and monitor breathing.\n\n"
+                f"**Don't**:\n"
+                f"- Do NOT attempt to drive yourself to the emergency room.\n"
+                f"- Do NOT ingest food, fluids, or unprescribed medications.\n\n"
+                f"**Sources**:\n"
+                f"- WHO Community Emergency Care Guidelines\n\n"
+            )
+        elif "Greeting" in routing_res.get("intents", []):
+            output_text = (
+                "Hello. I am ClinicRAG, your clinical decision support assistant. "
+                "How can I assist you today with your symptoms, medications, or medical guidelines?\n\n"
+                "Suggested Follow-ups:\n"
+                "1. Common cold vs flu symptoms\n"
+                "2. Check drug interactions\n"
+                "3. Calculate Body Mass Index"
+            )
+        else:
+            langchain_hist = memory.get_langchain_messages()
+            response = agent.run(prompt_to_run, langchain_hist, profile_context)
+            output_text = response.get("output", "I could not resolve your query.")
             
-        except Exception as e:
-            output_text = f"An unexpected error occurred while routing your query: {exception_formatter(e)}"
-            logger.error(f"UI chat error: {e}")
-            status_box.update(label="Error in clinical pipeline", state="error", expanded=False)
+        duration = time.time() - start_time
+        logger.info(f"Query executed in {duration:.4f}s. Intents classified: {routing_res.get('intents')}")
+        
+    except Exception as e:
+        output_text = f"An unexpected error occurred while routing your query: {exception_formatter(e)}"
+        logger.error(f"UI chat error: {e}")
+    finally:
+        loader_placeholder.empty()
             
     # 4. Save Assistant Output to Memory
     memory.add_message("assistant", output_text)

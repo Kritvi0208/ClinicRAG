@@ -334,6 +334,72 @@ def apply_custom_css():
         text-align: center;
         box-shadow: 0 3px 10px rgba(216, 120, 120, 0.12);
     }
+    
+    /* Ultra-Smooth Aesthetic AI Loader */
+    .clinic-ai-loader {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAF8FE 100%);
+        border: 1.5px solid #E2D9EE;
+        border-radius: 24px;
+        padding: 9px 18px;
+        margin: 10px 0 16px 0;
+        box-shadow: 0 4px 16px rgba(139, 123, 200, 0.12);
+        animation: subtleGlow 2s infinite alternate ease-in-out;
+    }
+    
+    .clinic-pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #8B7BC8;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulseWave 1.4s infinite ease-in-out both;
+    }
+    
+    .clinic-pulse-dot:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+    
+    .clinic-pulse-dot:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+    
+    .clinic-pulse-dot:nth-child(3) {
+        animation-delay: 0s;
+    }
+    
+    .clinic-loader-text {
+        color: #4E3F8A;
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        margin-left: 6px;
+    }
+    
+    @keyframes pulseWave {
+        0%, 80%, 100% {
+            transform: scale(0.6);
+            opacity: 0.35;
+        }
+        40% {
+            transform: scale(1.2);
+            opacity: 1;
+            background: #6A56BC;
+        }
+    }
+    
+    @keyframes subtleGlow {
+        0% {
+            box-shadow: 0 2px 8px rgba(139, 123, 200, 0.08);
+            border-color: #E2D9EE;
+        }
+        100% {
+            box-shadow: 0 4px 18px rgba(139, 123, 200, 0.22);
+            border-color: #8B7BC8;
+        }
+    }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)

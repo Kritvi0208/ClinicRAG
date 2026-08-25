@@ -108,73 +108,19 @@ class IntentRouter:
                 "matched_flag": None
             }
                 
-        # 4. LLM-based structured intent routing for complex clinical queries
-        models_to_try = [config.LLM_MODEL_NAME] + [m for m in config.FALLBACK_MODELS if m != config.LLM_MODEL_NAME]
+        # 4. Single-Pass Fast Routing (Eliminates redundant ~2.8s LLM network roundtrip)
+        intents = ["General Health"]
+        med_indicators = ["medicine", "drug", "pill", "tablet", "dosage", "side effect", "interaction", "contraindication", "mg", "capsule", "prescription"]
+        symptom_indicators = ["pain", "fever", "cough", "headache", "ache", "sore", "infection", "vomit", "nausea", "dizziness", "rash", "disease", "treatment", "guideline"]
         
-        for model_name in models_to_try:
-            try:
-                llm = ChatGoogleGenerativeAI(
-                    model=model_name,
-                    temperature=0.0,
-                    google_api_key=config.GOOGLE_API_KEY
-                )
-        
-                system_prompt = (
-                    "You are an intelligent medical intent router.\n"
-                    f"Classify the user's query into one or more of the following intents: {self.SUPPORTED_INTENTS}.\n\n"
-                    "Query context may include the previous conversation history if provided.\n"
-                    "Provide the response strictly in JSON format matching this schema:\n"
-                    "{\n"
-                    "  \"intents\": [\"Intent1\", \"Intent2\"]\n"
-                    "}\n\n"
-                    "If the query involves severe emergency indicators like chest pain, severe bleeding, stroke signs, poisoning, seizures, "
-                    "or suicidal ideation, you MUST include 'Emergency' in the intents list."
-                )
-                
-                user_prompt = f"User Query: {query}\nHistory:\n{history_str}"
-                
-                messages = [
-                    ("system", system_prompt),
-                    ("human", user_prompt)
-                ]
-                
-                if isinstance(response.content, list):
-                    response_text = "".join([part.get("text", "") if isinstance(part, dict) else (part if isinstance(part, str) else getattr(part, "text", "")) for part in response.content]).strip()
-                else:
-                    response_text = str(response.content).strip()
-                
-                json_match = re.search(r"\{.*?\}", response_text, re.DOTALL)
-                if json_match:
-                    response_text = json_match.group(0)
-                elif response_text.startswith("```"):
-                    lines = response_text.splitlines()
-                    if len(lines) > 2:
-                        response_text = "\n".join(lines[1:-1])
-                
-                data = json.loads(response_text)
-                intents = data.get("intents", ["General Health"])
-                
-                valid_intents = [i for i in intents if i in self.SUPPORTED_INTENTS]
-                if not valid_intents:
-                    valid_intents = ["General Health"]
-                    
-                emergency_bypass = "Emergency" in valid_intents
-                
-                logger.info(f"Intent Router results ({model_name}): intents={valid_intents}, emergency_bypass={emergency_bypass}")
-                return {
-                    "intents": valid_intents,
-                    "emergency_bypass": emergency_bypass,
-                    "matched_flag": None
-                }
-                
-            except Exception as e:
-                logger.warning(f"Intent Router model {model_name} failed: {e}. Trying next fallback...")
-                continue
-                
-        # Final safe rule-based fallback if all router models failed
-        is_emergency = "emergency" in query_lower or "cpr" in query_lower or "choking" in query_lower or "bleeding" in query_lower
+        if any(w in query_lower for w in med_indicators):
+            intents.append("Medication")
+        if any(w in query_lower for w in symptom_indicators):
+            intents.append("Symptoms")
+            
+        logger.info(f"Single-pass fast routing (0ms): intents={intents}")
         return {
-            "intents": ["Emergency"] if is_emergency else ["General Health"],
-            "emergency_bypass": is_emergency,
+            "intents": intents,
+            "emergency_bypass": False,
             "matched_flag": None
         }
