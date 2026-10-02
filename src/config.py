@@ -34,9 +34,9 @@ class AppConfig:
             pass
     
     # Model configuration (High-speed, high-accuracy flash models)
-    LLM_MODEL_NAME = "gemini-3.5-flash"  # Primary fastest accurate model
+    LLM_MODEL_NAME = "gemini-3.6-flash"  # Primary fastest accurate model
     FALLBACK_MODELS = [
-        "gemini-3.6-flash",
+        "gemini-3.5-flash",
         "gemini-3.5-flash-lite",
         "gemini-flash-latest"
     ]

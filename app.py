@@ -39,7 +39,7 @@ importlib.reload(src.router)
 from src.config import config
 from src.logger import logger
 from src.styles import apply_custom_css
-from src.utils import exception_formatter, token_counter
+from src.utils import exception_formatter, token_counter, format_user_followup_prompt
 from src.vector_store import MedicalVectorStore
 from src.agent import MedicalAgent
 from src.memory import MedicalMemory
@@ -300,7 +300,11 @@ for idx, msg in enumerate(messages):
             match = re.search(follow_up_pattern, content, re.DOTALL | re.IGNORECASE)
             if match:
                 clean_text = content[:match.start()].strip()
-                suggested_questions = [match.group(2).strip(), match.group(3).strip(), match.group(4).strip()]
+                suggested_questions = [
+                    format_user_followup_prompt(match.group(2)),
+                    format_user_followup_prompt(match.group(3)),
+                    format_user_followup_prompt(match.group(4))
+                ]
             
             st.markdown(clean_text)
             
@@ -317,7 +321,7 @@ for idx, msg in enumerate(messages):
 
             # Display clickable follow-up questions only for the very latest assistant message arranged horizontally
             if idx == len(messages) - 1 and suggested_questions:
-                st.markdown("<p style='font-size: 0.88rem; font-weight: 600; color: #4E3F8A; margin-top: 10px; margin-bottom: 6px;'>Suggested Follow-up Questions:</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.88rem; font-weight: 600; color: #4E3F8A; margin-top: 10px; margin-bottom: 6px;'>Suggested Follow-up Prompts:</p>", unsafe_allow_html=True)
                 followup_cols = st.columns(len(suggested_questions))
                 for q_idx, q in enumerate(suggested_questions):
                     with followup_cols[q_idx]:
@@ -397,15 +401,56 @@ if prompt_to_run:
             output_text = (
                 "Hello. I am ClinicRAG, your clinical decision support assistant. "
                 "How can I assist you today with your symptoms, medications, or medical guidelines?\n\n"
-                "Suggested Follow-ups:\n"
-                "1. Common cold vs flu symptoms\n"
-                "2. Check drug interactions\n"
-                "3. Calculate Body Mass Index"
+                "Suggested Follow-up Questions:\n"
+                "1. What is the difference between cold and flu symptoms?\n"
+                "2. Can you check drug interactions for my medications?\n"
+                "3. How do I calculate my Body Mass Index (BMI)?"
             )
         else:
             langchain_hist = memory.get_langchain_messages()
-            response = agent.run(prompt_to_run, langchain_hist, profile_context)
-            output_text = response.get("output", "I could not resolve your query.")
+            
+            # Stream tokens live from MedicalAgent as they are generated
+            accumulated_tokens = []
+            text_placeholder = None
+            
+            for event in agent.stream_run(prompt_to_run, langchain_hist, profile_context):
+                event_type = event.get("type")
+                if event_type == "tool_start":
+                    tool_name = event.get("name", "Clinical Tool")
+                    loader_placeholder.markdown(
+                        f"""
+                        <div class="clinic-ai-loader">
+                            <div class="clinic-pulse-dot"></div>
+                            <div class="clinic-pulse-dot"></div>
+                            <div class="clinic-pulse-dot"></div>
+                            <span class="clinic-loader-text">Checking {tool_name}...</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                elif event_type == "token":
+                    tok = event.get("content", "")
+                    if tok:
+                        if text_placeholder is None:
+                            loader_placeholder.empty()
+                            assistant_box = st.chat_message("assistant", avatar="🩺")
+                            text_placeholder = assistant_box.empty()
+                        accumulated_tokens.append(tok)
+                        text_placeholder.markdown("".join(accumulated_tokens) + "▌")
+                elif event_type == "final_result":
+                    output_text = event.get("result", {}).get("output", "")
+                    
+            if text_placeholder is not None and output_text:
+                text_placeholder.markdown(output_text)
+            elif not output_text and accumulated_tokens:
+                output_text = "".join(accumulated_tokens)
+                if text_placeholder is not None:
+                    text_placeholder.markdown(output_text)
+            elif not output_text:
+                output_text = "I could not resolve your query."
+                loader_placeholder.empty()
+                with st.chat_message("assistant", avatar="🩺"):
+                    st.markdown(output_text)
             
         duration = time.time() - start_time
         logger.info(f"Query executed in {duration:.4f}s. Intents classified: {routing_res.get('intents')}")

@@ -9,6 +9,29 @@ from src.logger import logger
 from src.constants import EMERGENCY_SIGNS
 from src.fda_parser import get_fda_drug_info
 
+# Safe session state helpers for multi-threaded background worker execution
+def _safe_record_tool(tool_name: str) -> None:
+    try:
+        if hasattr(st, "session_state") and "executed_tools" in st.session_state:
+            st.session_state["executed_tools"].append(tool_name)
+    except Exception:
+        pass
+
+def _safe_set_state(key: str, value: Any) -> None:
+    try:
+        if hasattr(st, "session_state"):
+            st.session_state[key] = value
+    except Exception:
+        pass
+
+def _safe_get_state(key: str, default: Any = None) -> Any:
+    try:
+        if hasattr(st, "session_state"):
+            return st.session_state.get(key, default)
+    except Exception:
+        pass
+    return default
+
 # Lazy loaders for database
 def _get_medicines_db() -> Dict[str, Any]:
     return load_json(config.MEDICINES_DB_PATH)
@@ -69,10 +92,7 @@ def medical_rag(query: str) -> str:
     if not docs:
         return "No matching records found in the medical knowledge base."
     
-    try:
-        st.session_state["last_retrieved_docs"] = docs
-    except Exception as e:
-        logger.warning(f"Failed to save retrieved docs to session state: {e}")
+    _safe_set_state("last_retrieved_docs", docs)
         
     formatted = []
     for doc in docs:
@@ -91,13 +111,12 @@ def medicine_lookup(medicine_name: str) -> str:
     """Retrieves brand name, generic name, usage, side effects, warnings, dosage, and storage details for a given medicine name."""
     logger.info(f"Tool Call - Medicine Info: {medicine_name}")
     
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("medicine_lookup")
+    _safe_record_tool("medicine_lookup")
         
     # 1. Try local FDA SPL XML database first
     fda_info = get_fda_drug_info(medicine_name)
     if fda_info:
-        st.session_state["active_medicine_badge"] = "FDA DailyMed Label"
+        _safe_set_state("active_medicine_badge", "FDA DailyMed Label")
         return (
             f"### Official FDA Drug Label Information ({fda_info['category'].upper()})\n"
             f"**Brand/Product Name**: {fda_info['name']}\n"
@@ -113,7 +132,7 @@ def medicine_lookup(medicine_name: str) -> str:
     # 2. Try live OpenFDA API as backup
     openfda_info = _query_openfda(medicine_name)
     if openfda_info:
-        st.session_state["active_medicine_badge"] = "OpenFDA Live API"
+        _safe_set_state("active_medicine_badge", "OpenFDA Live API")
         return (
             f"### Live OpenFDA API Drug Label Information\n"
             f"**Brand Name**: {openfda_info['name']}\n"
@@ -131,7 +150,7 @@ def medicine_lookup(medicine_name: str) -> str:
     med_key = medicine_name.strip().lower()
     if med_key in db:
         med = db[med_key]
-        st.session_state["active_medicine_badge"] = "Verified Database"
+        _safe_set_state("active_medicine_badge", "Verified Database")
         return (
             f"**Medicine Name**: {med.get('name')}\n"
             f"**Generic Name**: {med.get('generic')}\n"
@@ -154,8 +173,7 @@ def drug_interactions(medicine_a: str, medicine_b: str) -> str:
     logger.info(f"Tool Call - Drug Interaction Checker: {medicine_a} + {medicine_b}")
     db = _get_interactions_db()
     
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("drug_interactions")
+    _safe_record_tool("drug_interactions")
         
     med_a = medicine_a.strip().lower()
     med_b = medicine_b.strip().lower()
@@ -214,8 +232,7 @@ def drug_interactions(medicine_a: str, medicine_b: str) -> str:
 def symptom_checker(symptoms: str) -> str:
     """Evaluates symptoms against the local knowledge base and returns general home-care suggestions."""
     logger.info(f"Tool Call - Symptom Checker: {symptoms}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("symptom_checker")
+    _safe_record_tool("symptom_checker")
     retriever = _get_retriever()
     docs = retriever.retrieve(symptoms, category_filter="Symptoms")
     if not docs:
@@ -231,8 +248,7 @@ def symptom_checker(symptoms: str) -> str:
 def disease_lookup(disease_name: str) -> str:
     """Searches the database for chronic diseases and clinical diagnosis / treatment guidelines."""
     logger.info(f"Tool Call - Disease Lookup: {disease_name}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("disease_lookup")
+    _safe_record_tool("disease_lookup")
     retriever = _get_retriever()
     docs = retriever.retrieve(disease_name, category_filter="Diseases")
     if not docs:
@@ -248,8 +264,7 @@ def disease_lookup(disease_name: str) -> str:
 def nutrition_lookup(nutrient_or_food: str) -> str:
     """Provides evidence-based dietary recommendations, nutritional values, and food safety advice."""
     logger.info(f"Tool Call - Nutrition Lookup: {nutrient_or_food}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("nutrition_lookup")
+    _safe_record_tool("nutrition_lookup")
     retriever = _get_retriever()
     docs = retriever.retrieve(nutrient_or_food, category_filter="Nutrition")
     if not docs:
@@ -265,8 +280,7 @@ def nutrition_lookup(nutrient_or_food: str) -> str:
 def pregnancy_lookup(query: str) -> str:
     """Provides maternal, prenatal, and breastfeeding health guidelines."""
     logger.info(f"Tool Call - Pregnancy Lookup: {query}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("pregnancy_lookup")
+    _safe_record_tool("pregnancy_lookup")
     retriever = _get_retriever()
     docs = retriever.retrieve(query)
     
@@ -282,8 +296,7 @@ def pregnancy_lookup(query: str) -> str:
 def _first_aid_impl(topic: str) -> str:
     """Core logic for step-by-step first aid guide."""
     logger.info(f"Tool Call - First Aid Guide: {topic}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("first_aid")
+    _safe_record_tool("first_aid")
         
     guides = {
         "burn": (
@@ -418,8 +431,7 @@ def emergency_first_aid_guide(topic: str) -> str:
 def emergency_triage(complaint: str) -> str:
     """Evaluates safety critical symptoms and performs triage risk scoring."""
     logger.info(f"Tool Call - Emergency Triage: {complaint}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("emergency_triage")
+    _safe_record_tool("emergency_triage")
         
     complaint_lower = complaint.lower()
     
@@ -459,8 +471,7 @@ def emergency_triage(complaint: str) -> str:
 def bmi_calculator(weight_kg: float, height_cm: float) -> str:
     """Calculates Body Mass Index (BMI) given weight in kg and height in cm."""
     logger.info(f"Tool Call - BMI Calculator: weight={weight_kg}, height={height_cm}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("bmi_calculator")
+    _safe_record_tool("bmi_calculator")
     if weight_kg <= 0 or height_cm <= 0:
         return "Error: Weight and height must be positive values."
         
@@ -492,8 +503,7 @@ def bmi_calculator(weight_kg: float, height_cm: float) -> str:
 def bmr_calculator(age: int, gender: str, height_cm: float, weight_kg: float) -> str:
     """Calculates Basal Metabolic Rate (BMR) using the Mifflin-St Jeor equation. Gender must be 'male' or 'female'."""
     logger.info(f"Tool Call - BMR Calculator: age={age}, gender={gender}, height={height_cm}, weight={weight_kg}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("bmr_calculator")
+    _safe_record_tool("bmr_calculator")
     if age <= 0 or height_cm <= 0 or weight_kg <= 0:
         return "Error: Age, height, and weight must be positive numbers."
         
@@ -516,8 +526,7 @@ def bmr_calculator(age: int, gender: str, height_cm: float, weight_kg: float) ->
 def calorie_calculator(age: int, gender: str, height_cm: float, weight_kg: float, activity_level: str) -> str:
     """Estimates daily caloric requirements (TDEE) based on BMR and physical activity level."""
     logger.info(f"Tool Call - Calorie Calculator: activity={activity_level}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("calorie_calculator")
+    _safe_record_tool("calorie_calculator")
     if age <= 0 or height_cm <= 0 or weight_kg <= 0:
         return "Error: Age, height, and weight must be positive numbers."
         
@@ -554,8 +563,7 @@ def calorie_calculator(age: int, gender: str, height_cm: float, weight_kg: float
 def water_calculator(weight_kg: float) -> str:
     """Calculates recommended daily water intake (in Liters) based on weight."""
     logger.info(f"Tool Call - Water Calculator: weight={weight_kg}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("water_calculator")
+    _safe_record_tool("water_calculator")
     if weight_kg <= 0:
         return "Error: Weight must be a positive value."
         
@@ -570,8 +578,7 @@ def water_calculator(weight_kg: float) -> str:
 def medicine_dosage(medicine_name: str) -> str:
     """Retrieves generic FDA-derived dosage guidelines for a specific medicine name."""
     logger.info(f"Tool Call - Medicine Dosage: {medicine_name}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("medicine_dosage")
+    _safe_record_tool("medicine_dosage")
         
     fda_info = get_fda_drug_info(medicine_name)
     if fda_info:
@@ -590,8 +597,7 @@ def medicine_dosage(medicine_name: str) -> str:
 def _unit_converter_impl(value: float, unit_from: str, unit_to: str) -> str:
     """Core conversion calculation."""
     logger.info(f"Tool Call - Unit Converter: value={value}, from={unit_from}, to={unit_to}")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("unit_converter")
+    _safe_record_tool("unit_converter")
     u_from = unit_from.strip().lower()
     u_to = unit_to.strip().lower()
     
@@ -645,10 +651,9 @@ def unit_converter(value: float, unit_from: str, unit_to: str) -> str:
 def health_tips(query: str = "") -> str:
     """Generates custom health advice tips based on the active patient profile."""
     logger.info("Tool Call - Health Tips")
-    if "executed_tools" in st.session_state:
-        st.session_state["executed_tools"].append("health_tips")
+    _safe_record_tool("health_tips")
         
-    profile = st.session_state.get("patient_profile", {})
+    profile = _safe_get_state("patient_profile", {})
     tips = []
     
     if profile.get("allergies"):

@@ -19,6 +19,7 @@ data/raw/
 # Logs & temporary files
 *.log
 *.zip
+scratch/
 data_report.txt
 sample_xml.txt
 inspect_data.py
