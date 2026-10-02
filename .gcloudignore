@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+.env
+*.log
+*.zip
+chroma_db
+scratch
+.streamlit/secrets.toml
